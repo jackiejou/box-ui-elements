@@ -39,6 +39,11 @@ import {
     FEED_ITEM_TYPE_VERSION,
 } from '../../../constants';
 
+type Resolution = {
+    resolved_at?: string | null;
+    resolved_by?: User | null;
+};
+
 const MENTION_REGEX = /@\[(\d+):([^\]]+)\]/g;
 
 /**
@@ -245,7 +250,7 @@ export const transformAppActivityToProps = (item: BUIEAppActivityItem): AppActiv
 export const transformFeedItem = (item: FeedItem, currentUserId?: string): TransformedFeedItem | null => {
     switch (item.type) {
         case FEED_ITEM_TYPE_COMMENT: {
-            const comment = item as unknown as Comment;
+            const comment = item as unknown as Comment & { resolution?: Resolution };
             const commentIsResolved = comment.status === 'resolved';
             return {
                 id: comment.id,
@@ -253,16 +258,14 @@ export const transformFeedItem = (item: FeedItem, currentUserId?: string): Trans
                 messages: transformCommentToMessages(comment),
                 originalText: comment.tagged_message || comment.message || '',
                 permissions: comment.permissions ?? {},
-                resolvedAt: commentIsResolved ? toUnixMs(comment.modified_at) : undefined,
-                resolvedBy: commentIsResolved
-                    ? (comment as unknown as { modified_by?: { name?: string } }).modified_by?.name
-                    : undefined,
+                resolvedAt: commentIsResolved ? toUnixMs(comment.resolution?.resolved_at) : undefined,
+                resolvedBy: commentIsResolved ? comment.resolution?.resolved_by?.name : undefined,
                 status: comment.status,
                 type: 'comment',
             };
         }
         case FEED_ITEM_TYPE_ANNOTATION: {
-            const annotation = item as unknown as Annotation;
+            const annotation = item as unknown as Annotation & { resolution?: Resolution };
             const annotationIsResolved = annotation.status === 'resolved';
             return {
                 annotation,
@@ -270,8 +273,8 @@ export const transformFeedItem = (item: FeedItem, currentUserId?: string): Trans
                 isResolved: annotationIsResolved,
                 messages: transformAnnotationToMessages(annotation),
                 permissions: annotation.permissions ?? {},
-                resolvedAt: annotationIsResolved ? toUnixMs(annotation.modified_at) : undefined,
-                resolvedBy: annotationIsResolved ? annotation.modified_by?.name : undefined,
+                resolvedAt: annotationIsResolved ? toUnixMs(annotation.resolution?.resolved_at) : undefined,
+                resolvedBy: annotationIsResolved ? annotation.resolution?.resolved_by?.name : undefined,
                 status: annotation.status,
                 type: 'annotation',
             };
